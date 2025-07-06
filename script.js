@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Constraints Emphasizer
 // @namespace   https://github.com/TrueRyoB
-// @version      1.1
+// @version      1.3
 // @description AtCoderで入力値の制約が極端な時に目立たせる。(inspired by Time Limit Emphasizer by https://github.com/Ogtsn99)
 // @include     https://atcoder.jp/contests/*/tasks/*
 // @require      https://code.jquery.com/jquery-3.6.0.min.js
@@ -24,16 +24,16 @@ const styles = [
 $('<style>')
     .prop('type', 'text/css')
     .html(`
-        .dneg-c { color:#e2345; font-weight:1000; }
-        .dneg-perm { color:#492ed1; font-weight:700; }
-        .dneg-2pn { color:#492ed1; font-weight:700; }
-        .dneg-2pmdiv3 { color:#492ed1; font-weight:700; }
-        .dneg-np4 { color:#2ed192; font-weight:700; }
-        .dneg-np3 { color:#2ed192; font-weight:700; }
-        .dneg-np2 { color:#2ed192; font-weight:700; }
+        .dneg-c { color:#e2345;}
+        .dneg-perm { color:#492ed1; }
+        .dneg-2pn { color:#492ed1; }
+        .dneg-2pmdiv3 { color:#492ed1; }
+        .dneg-np4 { color:#2ed192; }
+        .dneg-np3 { color:#2ed192; }
+        .dneg-np2 { color:#2ed192; }
         .dneg-nlogn { }
         .dneg-n { }
-        .dneg-logn { color: #e23454; font-weight:700;}
+        .dneg-logn { color: #e23454;}
     `)
     .appendTo('head');
 
@@ -41,6 +41,7 @@ $('<style>')
 const $container = $('section h3:contains("制約")');
 $container.next('ul').find('li').each(function () {
     const annotation = $(this).find('annotation[encoding="application/x-tex"]').text();
+    console.log("new annotation:", annotation);
     const bound = extractMinMax(annotation);
     
     let found=false;
@@ -59,16 +60,37 @@ function extractMinMax(annotation) {
     const min = parseInt(match[1], 10);
     const rawMax = match[2].trim();
 
-    const expMatch = rawMax.match(
-        /(\d+)\s*\\times\s*10\^\{?(\d+)\}?/ 
-    );
-
     let max;
-    if (expMatch) {
-        max = parseInt(expMatch[1], 10) * Math.pow(10, parseInt(expMatch[2], 10));
+
+    const funcMatch = rawMax.match(/\\(min|max)\s*\(([^)]+)\)/);
+    if (funcMatch) {
+        const [, funcType, args] = funcMatch;
+        const values = args.split(',').map(s => s.trim());
+
+        let numericValues = values.map(val => {
+            const expMatch = val.match(/(\d+)\s*\\times\s*10\^\{?(\d+)\}?/);
+            if (expMatch) {
+                return parseInt(expMatch[1], 10) * Math.pow(10, parseInt(expMatch[2], 10));
+            }
+            const plainNum = val.match(/^\d+$/);
+            return plainNum ? parseInt(val, 10) : null;
+        }).filter(v => v !== null);
+
+        if (numericValues.length === 0) return null;
+
+        max = funcType === "min"
+            ? Math.min(...numericValues)
+            : Math.max(...numericValues);
     } else {
-        max = parseInt(rawMax.replace(/[^\d]/g, ''), 10);
+        const expMatch = rawMax.match(/(\d+)\s*\\times\s*10\^\{?(\d+)\}?/);
+        if (expMatch) {
+            max = parseInt(expMatch[1], 10) * Math.pow(10, parseInt(expMatch[2], 10));
+        } else {
+            const plainNum = rawMax.match(/^\d+$/);
+            max = plainNum ? parseInt(rawMax, 10) : null;
+        }
     }
 
+    if (isNaN(min) || isNaN(max)) return null;
     return { min, max };
 }
