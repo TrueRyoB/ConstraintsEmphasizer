@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Constraints Emphasizer
 // @namespace   https://github.com/TrueRyoB
-// @version      1.0
+// @version      1.1
 // @description AtCoderで入力値の制約が極端な時に目立たせる。(inspired by Time Limit Emphasizer by https://github.com/Ogtsn99)
 // @include     https://atcoder.jp/contests/*/tasks/*
 // @require      https://code.jquery.com/jquery-3.6.0.min.js
@@ -24,7 +24,7 @@ const styles = [
 $('<style>')
     .prop('type', 'text/css')
     .html(`
-        .dneg-c { color:#000; font-weight:1000; }
+        .dneg-c { color:#e2345; font-weight:1000; }
         .dneg-perm { color:#492ed1; font-weight:700; }
         .dneg-2pn { color:#492ed1; font-weight:700; }
         .dneg-2pmdiv3 { color:#492ed1; font-weight:700; }
@@ -53,12 +53,16 @@ $container.next('ul').find('li').each(function () {
 });
 
 function extractMinMax(annotation) {
-    const match = annotation.match(/(\d+)\s*\\leq\s*[^\\]+\s*\\leq\s*(.+)/);
+    const match = annotation.match(/(\d+)\s*\\leq\s*.+?\s*\\leq\s*(.+)/);
     if (!match) return null;
 
     const min = parseInt(match[1], 10);
     const rawMax = match[2].trim();
-    const expMatch = rawMax.match(/(\d+)\s*\\times\s*10\^(\d+)/);
+
+    const expMatch = rawMax.match(
+        /(\d+)\s*\\times\s*10\^\{?(\d+)\}?/ 
+    );
+
     let max;
     if (expMatch) {
         max = parseInt(expMatch[1], 10) * Math.pow(10, parseInt(expMatch[2], 10));
